@@ -308,6 +308,32 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
+     * Compile a rename index command.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint $blueprint
+     * @param  \Illuminate\Support\Fluent $command
+     * @param  \Illuminate\Database\Connection $connection
+     * @return array
+     */
+    public function compileRenameIndex(Blueprint $blueprint, Fluent $command, Connection $connection)
+    {
+        $schemaManager = $connection->getDoctrineSchemaManager();
+        $indexes = $schemaManager->listTableIndexes($blueprint->getTable());
+        $index = array_get($indexes, $command->from);
+
+        if(!$index) {
+            throw new RuntimeException("Column {$command->from} doesn't seem to exist");
+        }
+
+        $platform = $schemaManager->getDatabasePlatform();
+
+        return [
+            $platform->getDropIndexSQL($command->from, $blueprint->getTable()),
+            $platform->getCreateIndexSQL($index, $blueprint->getTable())
+        ];
+    }
+
+    /**
      * Compile the command to enable foreign key constraints.
      *
      * @return string
